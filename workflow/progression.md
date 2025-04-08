@@ -13,12 +13,13 @@
 - [x] Added docstrings to new code
 - [x] Created basic tests
 - [x] Created README.md
+- [x] Removed redundant files from root directory
+- [x] Created updated notebook using the package
 
 ## In Progress
 - [ ] Setting up virtual environment
 
 ## Pending Tasks
-- [ ] Fix notebook to use new connection class
 - [ ] Add comprehensive example code to README
 
 ## Milestones
@@ -32,6 +33,7 @@
 - Package structure created
 - Code properly organized in modules
 - Imports and references fixed
+- Redundant code removed
 
 ### Milestone 3: Quality Improvements (COMPLETED)
 - Type hints added
@@ -48,9 +50,9 @@
 - Code Organization: April 8, 2023 (COMPLETED)
 - Quality Improvements: April 8, 2023 (COMPLETED)
 - Documentation: April 9, 2023 (IN PROGRESS)
+- Cleanup: April 9, 2023 (COMPLETED)
 
 ## Next Actions
 1. Create a new virtual environment with the right dependencies
-2. Update notebook to use the new connection class
-3. Add more examples to the README
-4. Run tests to ensure everything works 
+2. Add more examples to the README
+3. Run tests to ensure everything works 

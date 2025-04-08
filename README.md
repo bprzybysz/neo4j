@@ -29,11 +29,11 @@ This project demonstrates how to:
 
 2. Create and activate virtual environment:
    ```
-   python -m venv .venv
+   ./setup_venv.sh
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-3. Install dependencies:
+3. Install dependencies (if not using the setup script):
    ```
    pip install -r requirements.txt
    ```
@@ -51,7 +51,7 @@ This project demonstrates how to:
 
 2. Run the ETL process:
    ```
-   python scripts/etl_process.py
+   python scripts/etl_process.py --input data/raw --output data/processed
    ```
 
 3. The processed data will be saved to `data/processed/` ready for Neo4j import
@@ -63,17 +63,28 @@ neo4j-movie-analysis/
 ├── data/                   # Data directory
 │   ├── raw/                # Raw data files
 │   └── processed/          # Processed data for Neo4j import
-├── notebooks/              # Jupyter notebooks
-│   ├── movie_analysis.ipynb    # Main analysis notebook
-│   └── cypher/             # Cypher query examples
 ├── movie_graph/            # Main package
+│   ├── __init__.py         # Package initialization
 │   ├── etl/                # ETL code
+│   │   ├── __init__.py
+│   │   └── process.py      # ETL processing code
 │   ├── db/                 # Database connectivity
+│   │   ├── __init__.py
+│   │   └── connection.py   # Neo4j connection class
 │   └── utils/              # Utility functions
+│       ├── __init__.py
+│       └── helpers.py      # Helper functions
+├── notebooks/              # Jupyter notebooks
+│   ├── movie_analysis.ipynb        # Original notebook
+│   ├── movie_analysis_updated.ipynb  # Updated notebook using the package API
+│   └── cypher/             # Cypher query examples
 ├── scripts/                # Utility scripts
 ├── tests/                  # Test suite
-├── .venv/                  # Virtual environment
-└── requirements.txt        # Dependencies
+├── workflow/               # Project documentation
+├── README.md               # Project documentation
+├── requirements.txt        # Dependencies
+├── setup_venv.sh           # Environment setup script
+└── run_tests.sh            # Test runner script
 ```
 
 ## Using the Analysis Notebooks
@@ -83,7 +94,7 @@ neo4j-movie-analysis/
    jupyter notebook
    ```
 
-2. Open the `notebooks/movie_analysis.ipynb` notebook
+2. Open the `notebooks/movie_analysis_updated.ipynb` notebook
 
 3. Update the Neo4j connection details:
    ```python
@@ -92,6 +103,52 @@ neo4j-movie-analysis/
    ```
 
 4. Run the notebook cells to connect to Neo4j and analyze the movie graph
+
+## Using the Package API
+
+### Basic Usage
+
+```python
+from movie_graph import connect_to_neo4j, run_etl
+
+# Connect to Neo4j
+conn = connect_to_neo4j("bolt://localhost:7687", ("neo4j", "password"))
+
+# Query the database
+results = conn.query("MATCH (m:Movie) RETURN m.title LIMIT 5")
+print(results)
+
+# Don't forget to close the connection
+conn.close()
+```
+
+### Running ETL Process
+
+```python
+from movie_graph import run_etl
+
+# Run the ETL process
+run_etl(
+    input_dir="data/raw",
+    output_dir="data/processed",
+    movies_file="tmdb_5000_movies.csv",
+    credits_file="tmdb_5000_credits.csv"
+)
+```
+
+### Context Manager Pattern
+
+```python
+from movie_graph import connect_to_neo4j
+
+# Using the connection as a context manager
+with connect_to_neo4j("bolt://localhost:7687", ("neo4j", "password")) as conn:
+    # Query the database
+    results = conn.query("MATCH (m:Movie) RETURN m.title LIMIT 5")
+    print(results)
+    
+# Connection is automatically closed outside the with block
+```
 
 ## Data Model
 
@@ -127,6 +184,23 @@ WHERE a1.id < a2.id
 RETURN a1.name, a2.name, COUNT(m) AS movies
 ORDER BY movies DESC
 LIMIT 10
+```
+
+### Movie recommendations based on shared genres
+```cypher
+MATCH (m1:Movie {title: 'Inception'})-[:CATEGORIZED_AS]->(g:Genre)<-[:CATEGORIZED_AS]-(m2:Movie)
+WHERE m1 <> m2
+RETURN m2.title, m2.vote_average, COUNT(g) AS shared_genres
+ORDER BY shared_genres DESC, m2.vote_average DESC
+LIMIT 10
+```
+
+## Running Tests
+
+To run the tests with coverage reporting:
+
+```bash
+./run_tests.sh
 ```
 
 ## Contributing
