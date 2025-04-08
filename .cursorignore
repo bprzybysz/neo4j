@@ -1,0 +1,68 @@
+# Cursor-specific ignores
+.cursor/
+.cursor-cache/
+.cursor-test-cache/
+
+# Large data directories
+data/
+neo4j-data/
+import/
+logs/
+
+# Generated files
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.ipynb_checkpoints/
+**/.pytest_cache/
+
+# Build and dist
+build/
+dist/
+*.egg-info/
+
+# Environment
+.env
+.venv/
+env/
+venv/
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary and backup files
+tmp/
+.stash/
+*.bak
+*.tmp
+*.log
+
+# Large binary files and datasets
+*.csv
+*.parquet
+*.arrow
+*.feather
+!example_data/*.csv
+
+# Documentation
+_build/
+_static/
+_templates/
+
+# Keep these files for indexing
+!README.md
+!data_model.md
+!cypher/*.cypher
+!scripts/*.py
+!notebooks/*.ipynb
+!example_data/README.md
+
+# Project configuration
+!.cursorrules
+!pyproject.toml
+!requirements.txt
+!setup.py 

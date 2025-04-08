@@ -1,0 +1,421 @@
+{
+    "preferences": {
+        "development": {
+            "requireTests": true,
+            "useTypeHints": true,
+            "enforceDocumentation": {
+                "newCode": true,
+                "existingCode": false
+            },
+            "skipRefactoring": true,
+            "allowLegacyPatterns": true,
+            "javaVersion": "17",
+            "codingStyle": {
+                "useClasses": true,
+                "implementDI": true,
+                "packageStructure": "maven",
+                "checkstyleConfig": "google",
+                "formatting": {
+                    "indentSize": 4,
+                    "lineLength": 120,
+                    "useSpaces": true
+                }
+            }
+        },
+        "contextManagement": {
+            "indexEntireCodebase": false,
+            "useFileReferences": true
+        },
+        "codeQuality": {
+            "criticalViolationsOnly": true,
+            "newCodeStandards": "strict",
+            "existingCodeStandards": "relaxed",
+            "linters": {
+                "java": {
+                    "plugin": "redhat.java",
+                    "enabled": true,
+                    "config": {
+                        "java.format.enabled": true,
+                        "java.completion.enabled": true,
+                        "java.signatureHelp.enabled": true,
+                        "java.format.settings.url": ".eclipse-formatter.xml"
+                    }
+                },
+                "checkstyle": {
+                    "plugin": "shengchen.vscode-checkstyle",
+                    "enabled": true,
+                    "config": "google_checks.xml"
+                },
+                "spotbugs": {
+                    "plugin": "vscjava.vscode-spotbugs",
+                    "enabled": true
+                },
+                "pmd": {
+                    "plugin": "vscjava.vscode-pmd",
+                    "enabled": true
+                }
+            }
+        },
+        "models": {
+            "simple": "gpt-4o-mini",
+            "default": "claude-3.5-sonnet",
+            "complex": "deepseek-r1",
+            "backup": "gpt-4o",
+            "autoModel": {
+                "enabled": true,
+                "allowedModels": [
+                    "claude-3.5-sonnet",
+                    "claude-3.7-sonnet",
+                    "claude-3.7-sonnet-max",
+                    "deepseek-r1",
+                    "deepseek-v3",
+                    "gemini-2.0-flash",
+                    "gemini-2.0-flash-thinking-exp",
+                    "gpt-4o",
+                    "gpt-4o-mini",
+                    "o1",
+                    "o3-mini"
+                ],
+                "disallowedModels": [
+                    "cursor-small",
+                    "cursor-fast"
+                ]
+            }
+        },
+        "performance": {
+            "useAgentMode": true,
+            "maxToolCalls": 25,
+            "contextPulling": true
+        },
+        "autoRun": true,
+        "notifyOnSuccess": false,
+        "notifyOnFailure": true,
+        "buildTools": {
+            "maven": {
+                "enabled": true,
+                "wrapper": true,
+                "validatePom": true
+            },
+            "gradle": {
+                "enabled": true,
+                "wrapper": true,
+                "validateBuild": true
+            }
+        },
+        "testing": {
+            "framework": "junit5",
+            "requireUnitTests": true,
+            "requireIntegrationTests": true,
+            "coverage": {
+                "tool": "jacoco",
+                "minThreshold": 80
+            }
+        }
+    },
+    "rules": [
+        {
+            "name": "JavaCompile",
+            "trigger": "onCodeGeneration",
+            "actions": [
+                {
+                    "type": "compile",
+                    "command": "mvn compile",
+                    "onSuccess": "RunTests",
+                    "onFailure": "HandleCompilationErrors"
+                }
+            ]
+        },
+        {
+            "name": "RunTests",
+            "trigger": "onCompileSuccess",
+            "actions": [
+                {
+                    "type": "test",
+                    "command": "mvn test",
+                    "onSuccess": "CheckstyleValidation",
+                    "onFailure": "HandleTestFailures"
+                }
+            ]
+        },
+        {
+            "name": "CheckstyleValidation",
+            "trigger": "onTestSuccess",
+            "actions": [
+                {
+                    "type": "lint",
+                    "command": "mvn checkstyle:check",
+                    "onSuccess": "SpotBugsAnalysis",
+                    "onFailure": "HandleLintErrors"
+                }
+            ]
+        },
+        {
+            "name": "SpotBugsAnalysis",
+            "trigger": "onLintSuccess",
+            "actions": [
+                {
+                    "type": "analyze",
+                    "command": "mvn spotbugs:check",
+                    "onSuccess": "AutoReview",
+                    "onFailure": "HandleAnalysisErrors"
+                }
+            ]
+        },
+        {
+            "name": "HandleCompilationErrors",
+            "trigger": "onCompileFailure",
+            "actions": [
+                {
+                    "type": "notify",
+                    "message": "Compilation failed. Please review the errors."
+                }
+            ]
+        },
+        {
+            "name": "HandleTestFailures",
+            "trigger": "onTestFailure",
+            "actions": [
+                {
+                    "type": "notify",
+                    "message": "Tests failed. Please review the test results."
+                }
+            ]
+        },
+        {
+            "name": "HandleLintErrors",
+            "trigger": "onLintFailure",
+            "actions": [
+                {
+                    "type": "notify",
+                    "message": "Checkstyle validation failed. Attempting to fix..."
+                },
+                {
+                    "type": "fixErrors",
+                    "strategy": "autoFix",
+                    "onSuccess": "AutoReview",
+                    "onFailure": "NotifyUser"
+                }
+            ]
+        },
+        {
+            "name": "HandleAnalysisErrors",
+            "trigger": "onAnalysisFailure",
+            "actions": [
+                {
+                    "type": "notify",
+                    "message": "SpotBugs analysis found issues. Please review."
+                }
+            ]
+        },
+        {
+            "name": "AutoReview",
+            "trigger": "onAnalysisSuccess",
+            "actions": [
+                {
+                    "type": "codeReview",
+                    "model": "deepseek-r1",
+                    "onSuccess": "PresentForAcceptance",
+                    "onFailure": "NotifyUser"
+                }
+            ]
+        },
+        {
+            "name": "PresentForAcceptance",
+            "trigger": "onReviewSuccess",
+            "actions": [
+                {
+                    "type": "present",
+                    "message": "Code is error-free and has passed all checks. Please accept the changes."
+                }
+            ]
+        },
+        {
+            "name": "NotifyUser",
+            "trigger": "onFailure",
+            "actions": [
+                {
+                    "type": "notify",
+                    "message": "An issue occurred during the automated process. Please check manually."
+                }
+            ]
+        },
+        {
+            "name": "MavenPomValidation",
+            "description": "Validates Maven POM files",
+            "pattern": "pom.xml",
+            "command": "mvn validate",
+            "message": "Invalid Maven POM configuration"
+        },
+        {
+            "name": "GradleValidation",
+            "description": "Validates Gradle build files",
+            "pattern": "build.gradle",
+            "command": "./gradlew validateBuild",
+            "message": "Invalid Gradle build configuration"
+        }
+    ],
+    "cursorTools": {
+        "commands": {
+            "web": {
+                "description": "Get answers from the web using Perplexity AI",
+                "usage": "cursor-tools web \"<your question>\"",
+                "example": "cursor-tools web \"latest weather in London\"",
+                "note": "For complex queries, write output to local-research/<query summary>.md"
+            },
+            "repo": {
+                "description": "Get context-aware answers about this repository using Google Gemini",
+                "usage": "cursor-tools repo \"<your question>\"",
+                "example": "cursor-tools repo \"explain authentication flow\""
+            },
+            "doc": {
+                "description": "Generate comprehensive documentation for this repository",
+                "usage": "cursor-tools doc [options]",
+                "example": "cursor-tools doc --output docs.md",
+                "note": "For remote repos, write output to local-docs/<repo-name>.md"
+            },
+            "github": {
+                "pr": {
+                    "description": "Get PRs",
+                    "usage": "cursor-tools github pr [number]",
+                    "example": "cursor-tools github pr 123"
+                },
+                "issue": {
+                    "description": "Get issues",
+                    "usage": "cursor-tools github issue [number]",
+                    "example": "cursor-tools github issue 456"
+                }
+            },
+            "browser": {
+                "open": {
+                    "description": "Open a URL and capture page content",
+                    "usage": "cursor-tools browser open <url> [options]",
+                    "example": "cursor-tools browser open \"https://example.com\" --html"
+                },
+                "act": {
+                    "description": "Execute actions on a webpage",
+                    "usage": "cursor-tools browser act \"<instruction>\" --url=<url> [options]",
+                    "example": "cursor-tools browser act \"Click Login\" --url=https://example.com"
+                },
+                "observe": {
+                    "description": "Observe interactive elements on a webpage",
+                    "usage": "cursor-tools browser observe \"<instruction>\" --url=<url> [options]",
+                    "example": "cursor-tools browser observe \"interactive elements\" --url=https://example.com"
+                },
+                "extract": {
+                    "description": "Extract data from a webpage",
+                    "usage": "cursor-tools browser extract \"<instruction>\" --url=<url> [options]",
+                    "example": "cursor-tools browser extract \"product names\" --url=https://example.com/products"
+                }
+            }
+        },
+        "options": {
+            "general": {
+                "model": "Specify alternative AI model",
+                "maxTokens": "Control response length",
+                "saveTo": "Save command output to file"
+            },
+            "documentation": {
+                "fromGithub": "Generate docs for remote GitHub repository"
+            },
+            "browser": {
+                "console": "Capture browser console logs",
+                "html": "Capture page HTML content",
+                "network": "Capture network activity",
+                "screenshot": "Save page screenshot",
+                "timeout": "Set navigation timeout",
+                "viewport": "Set viewport size",
+                "headless": "Run browser in headless mode",
+                "connectTo": "Connect to existing Chrome instance",
+                "wait": "Wait after page load",
+                "video": "Save video recording"
+            }
+        },
+        "notes": {
+            "browserCommands": [
+                "All commands are stateless",
+                "Special URL values for --connect-to",
+                "Multi-step workflows supported with pipe separator",
+                "Video recording available at 1280x720",
+                "Wait command currently disabled"
+            ],
+            "installation": {
+                "config": "cursor-tools.config.json or ~/.cursor-tools/config.json",
+                "apiKeys": ".cursor-tools.env or ~/.cursor-tools/.env",
+                "playwright": "npm install --save-dev playwright or npm install -g playwright"
+            },
+            "version": "0.5.0"
+        },
+        "help": {
+            "webSearch": {
+                "description": "Get answers from the web using Perplexity AI",
+                "usage": "cursor-tools web \"<your question>\"",
+                "example": "cursor-tools web \"latest weather in London\"",
+                "note": "For complex queries, write output to local-research/<query summary>.md"
+            },
+            "repoContext": {
+                "description": "Get context-aware answers about this repository using Google Gemini",
+                "usage": "cursor-tools repo \"<your question>\"",
+                "example": "cursor-tools repo \"explain authentication flow\""
+            },
+            "docGeneration": {
+                "description": "Generate comprehensive documentation for this repository",
+                "usage": "cursor-tools doc [options]",
+                "example": "cursor-tools doc --output docs.md",
+                "note": "For remote repos, write output to local-docs/<repo-name>.md"
+            },
+            "githubInfo": {
+                "pr": {
+                    "description": "Get PRs",
+                    "usage": "cursor-tools github pr [number]",
+                    "example": "cursor-tools github pr 123"
+                },
+                "issue": {
+                    "description": "Get issues",
+                    "usage": "cursor-tools github issue [number]",
+                    "example": "cursor-tools github issue 456"
+                }
+            },
+            "browserAutomation": {
+                "notes": [
+                    "All browser commands are stateless",
+                    "Multi-step workflows supported",
+                    "Video recording available",
+                    "Wait command disabled"
+                ],
+                "commands": {
+                    "open": {
+                        "description": "Open URL and capture content",
+                        "usage": "cursor-tools browser open <url> [options]"
+                    },
+                    "act": {
+                        "description": "Execute webpage actions",
+                        "usage": "cursor-tools browser act \"<instruction>\" --url=<url>"
+                    },
+                    "observe": {
+                        "description": "Observe webpage elements",
+                        "usage": "cursor-tools browser observe \"<instruction>\" --url=<url>"
+                    },
+                    "extract": {
+                        "description": "Extract webpage data",
+                        "usage": "cursor-tools browser extract \"<instruction>\" --url=<url>"
+                    }
+                }
+            },
+            "toolRecommendations": {
+                "web": "Best for general web information",
+                "repo": "Ideal for repository-specific questions",
+                "doc": "Generates repository documentation",
+                "browser": "Useful for web app testing"
+            },
+            "runningCommands": {
+                "installed": "Use cursor-tools <command> or package manager commands",
+                "uninstalled": "Use npx/bunx with cursor-tools@latest"
+            },
+            "installation": {
+                "config": "cursor-tools.config.json location",
+                "apiKeys": ".cursor-tools.env location",
+                "requirements": "Playwright required for browser commands"
+            }
+        }
+    }
+}

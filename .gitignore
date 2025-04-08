@@ -1,0 +1,114 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Logs
+*.log
+logs/
+
+# OS specific
+.DS_Store
+Thumbs.db 
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+*.ipynb_metadata
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Neo4j
+data/
+logs/
+import/
+plugins/
+neo4j.conf
+.neo4j/
+neo4j-data/
+
+# Project specific
+tmp/
+.stash/
+*.bak
+*.tmp
+*.log
+.cursorrules.*
+
+# Credentials and secrets
+*.pem
+*.key
+*.cert
+.env*
+!.env.example
+
+# Data files
+*.csv
+*.json
+!data_model.json
+!example_data/*.csv
+!example_data/*.json
+
+# Documentation build
+_build/
+_static/
+_templates/
+
