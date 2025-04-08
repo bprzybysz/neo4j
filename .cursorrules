@@ -84,6 +84,26 @@
                 "tool": "coverage",
                 "minThreshold": 80
             }
+        },
+        "jupyter": {
+            "notebookFormat": {
+                "nbformat": 4,
+                "nbformat_minor": 5,
+                "requireKernelspec": true,
+                "defaultKernel": "python3",
+                "validateStructure": true
+            },
+            "sparkIntegration": {
+                "useMagicCommands": true,
+                "preferredMagic": "%%pyspark",
+                "cacheDataFrames": true,
+                "optimizationLevel": "auto"
+            },
+            "cursorIntegration": {
+                "cellDelimiters": true,
+                "requireHeaders": true,
+                "requireCellIds": true
+            }
         }
     },
     "rules": [
@@ -188,6 +208,44 @@
                 {
                     "type": "notify",
                     "message": "An issue occurred during the automated process. Please check manually."
+                }
+            ]
+        },
+        {
+            "name": "JupyterValidation",
+            "trigger": "onNotebookSave",
+            "actions": [
+                {
+                    "type": "validate",
+                    "command": ".venv/bin/python -m scripts.validate_notebooks",
+                    "onSuccess": "NotifySuccess",
+                    "onFailure": "FixNotebook"
+                }
+            ]
+        },
+        {
+            "name": "FixNotebook",
+            "trigger": "onValidationFailure",
+            "actions": [
+                {
+                    "type": "notify",
+                    "message": "Notebook validation failed. Attempting to fix..."
+                },
+                {
+                    "type": "fixErrors",
+                    "command": ".venv/bin/python -m scripts.fix_notebooks",
+                    "onSuccess": "NotifySuccess",
+                    "onFailure": "NotifyUser"
+                }
+            ]
+        },
+        {
+            "name": "NotifySuccess",
+            "trigger": "onValidationSuccess",
+            "actions": [
+                {
+                    "type": "notify",
+                    "message": "Notebook is properly formatted and compatible with Spark/Cursor."
                 }
             ]
         }

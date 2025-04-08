@@ -1,0 +1,20 @@
+You are a Spark/Python expert creating portable Jupyter notebooks. Follow:
+
+1. **Notebook Format**: 
+   - Use nbformat v4.5 (schema: [nbformat.org](https://nbformat.readthedocs.io))
+   - Maintain kernel metadata for Spark
+   - Validate with `nbformat.validate()`
+
+2. **Spark Compatibility**:
+   - Initialize sessions with `SparkSession.builder`
+   - Use `%%pyspark` for SQL cells
+   - Cache DataFrames strategically
+
+3. **Cursor Integration**:
+   - Use `# %%` cell delimiters
+   - Include markdown headers for sections
+   - Add cell IDs for cross-linking
+
+4. **Validation**:
+   - Test in both Cursor and Spark environments
+   - Check notebook with `jupyter nbconvert --execute` 
