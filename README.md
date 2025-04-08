@@ -45,16 +45,22 @@ This project demonstrates how to:
 
 ### Data Preparation
 
-1. Place your raw movie data in the `data/raw/` directory:
+1. Download the dataset using the provided script:
+   ```
+   python scripts/download_data.py
+   ```
+   This script will automatically download the TMDB dataset files to the `data/raw/` directory.
+
+2. Alternatively, place your raw movie data manually in the `data/raw/` directory:
    - `tmdb_5000_movies.csv` - Movie information
    - `tmdb_5000_credits.csv` - Movie credits data
 
-2. Run the ETL process:
+3. Run the ETL process:
    ```
    python scripts/etl_process.py --input data/raw --output data/processed
    ```
 
-3. The processed data will be saved to `data/processed/` ready for Neo4j import
+4. The processed data will be saved to `data/processed/` ready for Neo4j import
 
 ## Environment Checks
 
@@ -107,6 +113,8 @@ neo4j-movie-analysis/
 │   └── cypher/             # Cypher query examples
 ├── scripts/                # Utility scripts
 │   ├── run_with_checks.py  # Environment check wrapper
+│   ├── download_data.py    # Dataset download script
+│   ├── debug_extract.py    # Debugging script for ETL issues
 │   └── etl_process.py      # ETL processing script
 ├── tests/                  # Test suite
 ├── workflow/               # Project documentation

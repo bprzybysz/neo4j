@@ -34,6 +34,13 @@
 - Set up development workflow documentation
 - Created updated notebook that uses the package API
 
+### 6. Data Handling Improvements
+- Added robust JSON parsing with multi-stage error handling
+- Added automatic column name conflict resolution during data merging
+- Added default value handling for missing columns
+- Created dedicated data download script with fallback sources
+- Added debugging tools for ETL process troubleshooting
+
 ## Project Structure
 
 The project has been organized into the following structure:
@@ -60,7 +67,13 @@ neo4j-movie-analysis/
 │   └── cypher/             # Cypher query examples
 ├── scripts/                # Utility scripts
 │   ├── convert_notebook.py # Notebook conversion script
-│   └── etl_process.py      # ETL process script
+│   ├── download_data.py    # Dataset download script 
+│   ├── debug_extract.py    # Debugging script for ETL issues
+│   ├── etl_process.py      # ETL process script
+│   ├── validate_notebooks.py # Notebook validation script
+│   ├── fix_notebooks.py    # Notebook fixing script
+│   ├── create_notebook_template.py # Template notebook creator
+│   └── run_with_checks.py  # Environment check wrapper
 ├── tests/                  # Test suite
 │   ├── __init__.py
 │   ├── test_etl.py         # ETL tests
@@ -92,6 +105,13 @@ neo4j-movie-analysis/
    source .venv/bin/activate
    ```
 
+### Obtaining the Data
+
+Download the dataset using the provided script:
+```
+python scripts/download_data.py
+```
+
 ### Running ETL Process
 
 Use the ETL script with the new package structure:
@@ -122,9 +142,30 @@ df = conn.query("MATCH (m:Movie) RETURN m.title, m.release_date LIMIT 10")
 print(df)
 ```
 
+## Recent Improvements
+
+### Enhanced ETL Process
+- Added robust multi-stage JSON parsing to handle malformed JSON in datasets
+- Automatic column conflict resolution for duplicate column names
+- Flexible ID column detection and mapping between data files
+- Comprehensive logging and error reporting for better diagnostics
+
+### New Data Acquisition Tools
+- Added `download_data.py` script for automatic dataset downloading
+- Multiple source fallback for reliability
+- Test data generation when downloads fail
+- Detailed download process logging
+
+### Notebook Tooling
+- Added notebook validation script to ensure consistent formatting
+- Auto-fixing capabilities for common notebook issues
+- Template generation for consistent notebook creation
+- Integration with cursorrules for validation
+
 ## Next Steps
 
-1. Update notebooks to use the new package structure (COMPLETED)
-2. Create more comprehensive documentation of the API
-3. Expand test coverage
-4. Add more Cypher query examples 
+1. Add more comprehensive examples of Cypher queries
+2. Create additional visualization examples in notebooks
+3. Expand test coverage for edge cases
+4. Create documentation examples for complex graph queries
+5. Add integration with popular graph visualization libraries 

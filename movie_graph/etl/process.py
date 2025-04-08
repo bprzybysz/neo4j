@@ -21,23 +21,83 @@ def ensure_dir(directory: str) -> None:
 
 def parse_json_fields(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
     """
-    Parse JSON string fields into Python objects.
+    Parse JSON strings in DataFrame columns.
     
     Args:
-        df: DataFrame containing JSON string columns
-        columns: List of column names to parse
+        df: DataFrame to process
+        columns: List of column names containing JSON strings
         
     Returns:
-        DataFrame with JSON strings converted to Python objects
+        DataFrame with parsed JSON columns
     """
+    def safe_json_loads(x):
+        if pd.isna(x):
+            return []
+        
+        if isinstance(x, list):
+            return x  # Already parsed
+            
+        try:
+            # First attempt: standard JSON parsing
+            return json.loads(x)
+        except json.JSONDecodeError:
+            try:
+                # Second attempt: try fixing common JSON issues
+                # Replace single quotes with double quotes if that's the issue
+                fixed_json = x.replace("'", '"')
+                return json.loads(fixed_json)
+            except json.JSONDecodeError:
+                try:
+                    # Third attempt: try to use ast.literal_eval for Python literal structures
+                    import ast
+                    return ast.literal_eval(x)
+                except (SyntaxError, ValueError):
+                    try:
+                        # Fourth attempt: handle potential trailing commas
+                        # This is a common error in JSON strings
+                        if x.endswith(',]}'):
+                            fixed_json = x.replace(',]}', ']}')
+                            return json.loads(fixed_json)
+                        elif x.endswith(',}'):
+                            fixed_json = x.replace(',}', '}')
+                            return json.loads(fixed_json)
+                        else:
+                            # Create more detailed error reporting
+                            print(f"Warning: Could not parse JSON: {x[:100]}...")
+                            print(f"Using a fallback empty list")
+                            return []
+                    except json.JSONDecodeError as e:
+                        print(f"Warning: Could not parse JSON: {x[:100]}...")
+                        print(f"Error: {e}")
+                        return []
+            
+    # Apply the safe parsing to each specified column
     for col in columns:
-        df[col] = df[col].apply(lambda x: json.loads(str(x).replace("'", "\"")) if pd.notnull(x) else [])
+        # Check if column exists
+        if col in df.columns:
+            df[col] = df[col].apply(safe_json_loads)
+        else:
+            print(f"Warning: Column '{col}' not found in DataFrame")
+    
     return df
 
 
 def extract_data(input_dir: str, movies_file: str, credits_file: str) -> pd.DataFrame:
     """
-    Extract data from raw CSV files.
+    Extract data from raw CSV files and prepare it for transformation.
+    
+    This function handles the following tasks:
+    1. Reads movie and credits data from CSV files
+    2. Resolves column naming conflicts during the merge (e.g., 'title' appearing in both files)
+    3. Parses JSON-formatted columns into Python objects
+    4. Adds default values for any missing required columns
+    
+    Implementation details:
+    - Both the movies and credits files contain a 'title' column, which causes pandas to append
+      '_x' and '_y' suffixes during merging. We handle this by creating a new 'title' column from
+      'title_x' and dropping both suffixed columns.
+    - JSON parsing is improved to handle various edge cases and problematic JSON formatting.
+    - Validation is performed to ensure all required columns are present before transformation.
     
     Args:
         input_dir: Directory containing input files
@@ -45,23 +105,100 @@ def extract_data(input_dir: str, movies_file: str, credits_file: str) -> pd.Data
         credits_file: Filename for credits data
         
     Returns:
-        DataFrame containing merged movie data
+        DataFrame containing merged movie data ready for transformation
     """
     print("Extracting data...")
     
-    movies_df = pd.read_csv(os.path.join(input_dir, movies_file))
-    credits_df = pd.read_csv(os.path.join(input_dir, credits_file))
+    # Check if files exist
+    movies_path = os.path.join(input_dir, movies_file)
+    credits_path = os.path.join(input_dir, credits_file)
     
-    # Rename id column in credits to match movies
+    if not os.path.exists(movies_path):
+        raise FileNotFoundError(f"Movies file not found: {movies_path}")
+    if not os.path.exists(credits_path):
+        raise FileNotFoundError(f"Credits file not found: {credits_path}")
+    
+    print(f"Reading movies data from {movies_path}")
+    movies_df = pd.read_csv(movies_path)
+    print(f"Movies data shape: {movies_df.shape}")
+    print(f"Movies columns: {movies_df.columns.tolist()}")
+    
+    print(f"Reading credits data from {credits_path}")
+    credits_df = pd.read_csv(credits_path)
+    print(f"Credits data shape: {credits_df.shape}")
+    print(f"Credits columns: {credits_df.columns.tolist()}")
+    
+    # Handle different column naming conventions
+    # Some datasets use 'movie_id', some use 'id' in the credits file
+    id_column_in_movies = 'id'
+    id_column_in_credits = None
+    
+    # Determine the ID column in credits
     if 'movie_id' in credits_df.columns:
-        credits_df.rename(columns={'movie_id': 'id'}, inplace=True)
+        id_column_in_credits = 'movie_id'
+    elif 'id' in credits_df.columns:
+        id_column_in_credits = 'id'
+    else:
+        raise ValueError("Could not find 'id' or 'movie_id' column in credits file")
+    
+    # Rename ID column in credits to match movies
+    if id_column_in_credits != id_column_in_movies:
+        print(f"Renaming column '{id_column_in_credits}' to '{id_column_in_movies}' in credits data")
+        credits_df.rename(columns={id_column_in_credits: id_column_in_movies}, inplace=True)
+    
+    # Both dataframes have a 'title' column which will cause duplicates when merging
+    # We'll handle this by tracking which columns might get suffixes
+    common_columns = set(movies_df.columns) & set(credits_df.columns)
+    print(f"Common columns that may get suffixes: {common_columns}")
     
     # Merge dataframes
-    df = pd.merge(movies_df, credits_df, on='id')
+    print(f"Merging data on column '{id_column_in_movies}'")
+    df = pd.merge(movies_df, credits_df, on=id_column_in_movies)
+    print(f"Merged data shape: {df.shape}")
     
+    # Check and handle duplicate columns with suffixes
+    duplicate_cols = [col for col in df.columns if '_x' in col or '_y' in col]
+    if duplicate_cols:
+        print(f"Found duplicate columns after merge: {duplicate_cols}")
+        
+        # If title has been split into title_x and title_y, fix it
+        if 'title_x' in df.columns and 'title_y' in df.columns:
+            print("Fixing title column (using title_x from movies file)")
+            # Rename title_x to title (preserve the title from the movies file)
+            df['title'] = df['title_x']
+            # Drop the duplicate columns
+            df = df.drop(columns=['title_x', 'title_y'])
+    
+    # Identify JSON columns
+    json_columns = []
+    for col in ['genres', 'keywords', 'production_companies', 'cast', 'crew']:
+        if col in df.columns:
+            json_columns.append(col)
+        else:
+            print(f"Warning: Expected column '{col}' not found in merged dataframe")
+    
+    print(f"Parsing JSON in columns: {json_columns}")
     # Convert string representations of lists/dicts to actual Python objects
-    json_columns = ['genres', 'keywords', 'production_companies', 'cast', 'crew']
     df = parse_json_fields(df, json_columns)
+    
+    # Verify that required columns are present for transformation
+    required_columns = ['id', 'title', 'release_date', 'budget', 'revenue', 
+                        'popularity', 'vote_average', 'vote_count', 'overview']
+    
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        print(f"Warning: Missing required columns: {missing_columns}")
+        # Add missing columns with default values to prevent KeyError later
+        for col in missing_columns:
+            print(f"Adding missing column '{col}' with default values")
+            if col == 'title':
+                df[col] = 'Unknown Title'
+            elif col in ['release_date', 'overview']:
+                df[col] = ''
+            elif col in ['budget', 'revenue', 'popularity', 'vote_average', 'vote_count']:
+                df[col] = 0
+            else:
+                df[col] = None
     
     return df
 
