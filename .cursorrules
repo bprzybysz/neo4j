@@ -9,15 +9,12 @@
             },
             "skipRefactoring": true,
             "allowLegacyPatterns": true,
-            "javaVersion": "17",
+            "pythonVersion": "3.11",
             "codingStyle": {
                 "useClasses": true,
-                "implementDI": true,
-                "packageStructure": "maven",
-                "checkstyleConfig": "google",
                 "formatting": {
                     "indentSize": 4,
-                    "lineLength": 120,
+                    "lineLength": 88,
                     "useSpaces": true
                 }
             }
@@ -31,28 +28,16 @@
             "newCodeStandards": "strict",
             "existingCodeStandards": "relaxed",
             "linters": {
-                "java": {
-                    "plugin": "redhat.java",
+                "python": {
+                    "plugin": "ms-python.python",
                     "enabled": true,
                     "config": {
-                        "java.format.enabled": true,
-                        "java.completion.enabled": true,
-                        "java.signatureHelp.enabled": true,
-                        "java.format.settings.url": ".eclipse-formatter.xml"
+                        "python.linting.enabled": true,
+                        "python.linting.pylintEnabled": true,
+                        "python.linting.flake8Enabled": true,
+                        "python.linting.mypyEnabled": true,
+                        "python.formatting.provider": "black"
                     }
-                },
-                "checkstyle": {
-                    "plugin": "shengchen.vscode-checkstyle",
-                    "enabled": true,
-                    "config": "google_checks.xml"
-                },
-                "spotbugs": {
-                    "plugin": "vscjava.vscode-spotbugs",
-                    "enabled": true
-                },
-                "pmd": {
-                    "plugin": "vscjava.vscode-pmd",
-                    "enabled": true
                 }
             }
         },
@@ -90,84 +75,67 @@
         "autoRun": true,
         "notifyOnSuccess": false,
         "notifyOnFailure": true,
-        "buildTools": {
-            "maven": {
-                "enabled": true,
-                "wrapper": true,
-                "validatePom": true
-            },
-            "gradle": {
-                "enabled": true,
-                "wrapper": true,
-                "validateBuild": true
-            }
-        },
+        "venvPath": ".venv",
         "testing": {
-            "framework": "junit5",
+            "framework": "pytest",
             "requireUnitTests": true,
             "requireIntegrationTests": true,
             "coverage": {
-                "tool": "jacoco",
+                "tool": "coverage",
                 "minThreshold": 80
             }
         }
     },
     "rules": [
         {
-            "name": "JavaCompile",
+            "name": "PythonLint",
             "trigger": "onCodeGeneration",
             "actions": [
                 {
-                    "type": "compile",
-                    "command": "mvn compile",
-                    "onSuccess": "RunTests",
-                    "onFailure": "HandleCompilationErrors"
-                }
-            ]
-        },
-        {
-            "name": "RunTests",
-            "trigger": "onCompileSuccess",
-            "actions": [
-                {
-                    "type": "test",
-                    "command": "mvn test",
-                    "onSuccess": "CheckstyleValidation",
-                    "onFailure": "HandleTestFailures"
-                }
-            ]
-        },
-        {
-            "name": "CheckstyleValidation",
-            "trigger": "onTestSuccess",
-            "actions": [
-                {
                     "type": "lint",
-                    "command": "mvn checkstyle:check",
-                    "onSuccess": "SpotBugsAnalysis",
+                    "command": ".venv/bin/python -m flake8",
+                    "onSuccess": "RunTests",
                     "onFailure": "HandleLintErrors"
                 }
             ]
         },
         {
-            "name": "SpotBugsAnalysis",
+            "name": "RunTests",
             "trigger": "onLintSuccess",
             "actions": [
                 {
-                    "type": "analyze",
-                    "command": "mvn spotbugs:check",
-                    "onSuccess": "AutoReview",
-                    "onFailure": "HandleAnalysisErrors"
+                    "type": "test",
+                    "command": ".venv/bin/python -m pytest",
+                    "onSuccess": "TypeCheck",
+                    "onFailure": "HandleTestFailures"
                 }
             ]
         },
         {
-            "name": "HandleCompilationErrors",
-            "trigger": "onCompileFailure",
+            "name": "TypeCheck",
+            "trigger": "onTestSuccess",
+            "actions": [
+                {
+                    "type": "analyze",
+                    "command": ".venv/bin/python -m mypy .",
+                    "onSuccess": "AutoReview",
+                    "onFailure": "HandleTypeErrors"
+                }
+            ]
+        },
+        {
+            "name": "HandleLintErrors",
+            "trigger": "onLintFailure",
             "actions": [
                 {
                     "type": "notify",
-                    "message": "Compilation failed. Please review the errors."
+                    "message": "Linting failed. Attempting to fix..."
+                },
+                {
+                    "type": "fixErrors",
+                    "strategy": "autoFix",
+                    "onSuccess": "RunTests",
+                    "onFailure": "NotifyUser"
                 }
             ]
         },
@@ -182,28 +150,12 @@
             ]
         },
         {
-            "name": "HandleLintErrors",
-            "trigger": "onLintFailure",
-            "actions": [
-                {
-                    "type": "notify",
-                    "message": "Checkstyle validation failed. Attempting to fix..."
-                },
-                {
-                    "type": "fixErrors",
-                    "strategy": "autoFix",
-                    "onSuccess": "AutoReview",
-                    "onFailure": "NotifyUser"
-                }
-            ]
-        },
-        {
-            "name": "HandleAnalysisErrors",
+            "name": "HandleTypeErrors",
             "trigger": "onAnalysisFailure",
             "actions": [
                 {
                     "type": "notify",
-                    "message": "SpotBugs analysis found issues. Please review."
+                    "message": "Type checking found issues. Please review."
                 }
             ]
         },
@@ -238,20 +190,6 @@
                     "message": "An issue occurred during the automated process. Please check manually."
                 }
             ]
-        },
-        {
-            "name": "MavenPomValidation",
-            "description": "Validates Maven POM files",
-            "pattern": "pom.xml",
-            "command": "mvn validate",
-            "message": "Invalid Maven POM configuration"
-        },
-        {
-            "name": "GradleValidation",
-            "description": "Validates Gradle build files",
-            "pattern": "build.gradle",
-            "command": "./gradlew validateBuild",
-            "message": "Invalid Gradle build configuration"
         }
     ],
     "cursorTools": {
@@ -329,21 +267,6 @@
                 "wait": "Wait after page load",
                 "video": "Save video recording"
             }
-        },
-        "notes": {
-            "browserCommands": [
-                "All commands are stateless",
-                "Special URL values for --connect-to",
-                "Multi-step workflows supported with pipe separator",
-                "Video recording available at 1280x720",
-                "Wait command currently disabled"
-            ],
-            "installation": {
-                "config": "cursor-tools.config.json or ~/.cursor-tools/config.json",
-                "apiKeys": ".cursor-tools.env or ~/.cursor-tools/.env",
-                "playwright": "npm install --save-dev playwright or npm install -g playwright"
-            },
-            "version": "0.5.0"
         },
         "help": {
             "webSearch": {

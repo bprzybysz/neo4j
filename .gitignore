@@ -91,7 +91,6 @@ tmp/
 *.bak
 *.tmp
 *.log
-.cursorrules.*
 
 # Credentials and secrets
 *.pem
@@ -99,6 +98,9 @@ tmp/
 *.cert
 .env*
 !.env.example
+
+# Cursor rules
+!.cursor*
 
 # Data files
 *.csv
